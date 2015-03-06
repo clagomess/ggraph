@@ -1,9 +1,19 @@
 <?php
+/**
+ * GGraph
+ *
+ * @author Claudio Gomes <cla.gomess@gmail.com>
+ * @version 1.0
+ * @copyright None
+ * @since 06/03/2015
+ * @link https://github.com/clagomess/ggraph
+ */
+
 error_reporting(0);
 include_once 'GGraph.php';
 
 $arValues = array(
-    'R$ 66.64 - Ourocard > Jaqueta Heraldo' => array(
+    'R$ 66.64 - Ourocard > Jaqueta Fuguetinho' => array(
         '11/2014' => 156.20,
         '12/2014' => 536.00,
         '01/2014' => 800.01,
@@ -43,9 +53,14 @@ $arValues = array(
 
 
 // flush image
-header('Content-type: image/png');
+
 $graph = new GGraph(750, $arValues);
+$graph->opMostrarPontoValor = false;
+$graph->opTransparente = false;
+$graph->empilharGrafico();
 //$graph->graficoPoligno();
 $graph->graficoLinha();
+
+header('Content-type: image/png');
 $graph->out();
 

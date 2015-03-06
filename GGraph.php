@@ -1,4 +1,13 @@
 <?php
+/**
+ * GGraph
+ *
+ * @author Claudio Gomes <cla.gomess@gmail.com>
+ * @version 1.0
+ * @copyright None
+ * @since 06/03/2015
+ * @link https://github.com/clagomess/ggraph
+ */
 
 class GGraph {
     private $tamanho; // Tamanho da imagem
@@ -7,6 +16,10 @@ class GGraph {
     private $vetor; // Dados do grafico
     private $gtamanho; // Tamanho do grafico
     private $columSize; // Tamalho das coluna
+
+    // Opções
+    public $opMostrarPontoValor = true;
+    public $opTransparente = true;
 
     function __construct($tamanho = 500, $vetor = array()) {
         $this->vetor = $vetor;
@@ -18,7 +31,7 @@ class GGraph {
     }
 
     // Criar uma cor ou pega uma cor na paleta existente
-    private function getColor($id = null, $r = 0, $g = 0, $b = 0) {
+    private function getColor($id = null, $r = 0, $g = 0, $b = 0, $alpha = 0) {
         $paleta = array(
             array('r' => 200, 'g' => 200, 'b' => 200),
             array('r' => 51, 'g' => 102, 'b' => 204),
@@ -31,10 +44,14 @@ class GGraph {
             array('r' => 102, 'g' => 170, 'b' => 0)
         );
 
-        if ($id) {
-            return imagecolorallocate($this->image, $paleta[$id]['r'], $paleta[$id]['g'], $paleta[$id]['b']);
+        if(!$this->opTransparente){
+            $alpha = 0;
+        }
+
+        if ($id || $id == 0) {
+            return imagecolorallocatealpha($this->image, $paleta[$id]['r'], $paleta[$id]['g'], $paleta[$id]['b'], $alpha);
         } else {
-            return imagecolorallocate($this->image, $r, $g, $b);
+            return imagecolorallocatealpha($this->image, $r, $g, $b, $alpha);
         }
     }
 
@@ -51,8 +68,7 @@ class GGraph {
     // Cria descrição da cor da linha referente no grafico
     private function desenhaLabel($text, $color, $y) {
         $this->desenhaPonto(($this->gtamanho + ($this->margem * 5)), ($y + $this->margem), $color);
-        $black = imagecolorallocate($this->image, 0, 0, 0);
-        imagestring($this->image, 3, ($this->gtamanho + ($this->margem * 6)), $y, utf8_decode($text), $black);
+        imagestring($this->image, 3, ($this->gtamanho + ($this->margem * 6)), $y, utf8_decode($text), null);
     }
 
     // Desenha linha simples
@@ -60,14 +76,14 @@ class GGraph {
         $x = $this->margem;
         $y = $this->gtamanho + $this->margem;
 
-        $black = imagecolorallocate($this->image, 0, 0, 0);
-
         foreach ($vetor as $referencia => $value) {
-            $val = ($this->gtamanho + ($this->margem * 2)) - (floor((($this->gtamanho + $this->margem) * $value) / $maxValue));
+            $val = ($this->gtamanho + ($this->margem * 1)) - (floor((($this->gtamanho) * $value) / $maxValue));
 
             imageline($this->image, $x, $y, ($x + $this->columSize), $val, $cor);
             $this->desenhaPonto(($x + $this->columSize), $val, $cor);
-            imagestring($this->image, 2, ($x + ($this->columSize + $this->margem)), ($val - $this->margem), utf8_decode($value), $black);
+            if($this->opMostrarPontoValor) {
+                imagestring($this->image, 2, ($x + ($this->columSize + $this->margem)), ($val - $this->margem), utf8_decode($value), null);
+            }
 
             $y = $val;
             $x += $this->columSize;
@@ -76,8 +92,6 @@ class GGraph {
 
     // Desenha base do gráfico
     private function desenhaBase() {
-        $gray = imagecolorallocate($this->image, 200, 200, 200);
-        $black = imagecolorallocate($this->image, 0, 0, 0);
         $maxValue = 0;
 
         $arReferencia = array();
@@ -97,14 +111,14 @@ class GGraph {
 
         $this->columSize = floor($this->gtamanho / count($arReferencia));
 
-        for ($linex = $this->margem; $linex <= ($this->gtamanho + $this->margem); $linex += $this->columSize) {
+        for ($linex = ($this->margem + $this->columSize); $linex <= ($this->gtamanho + $this->margem); $linex += $this->columSize) {
             // Linha para descrição do eixo X
-            imageline($this->image, $linex, $this->margem, $linex, ($this->gtamanho + $this->margem), $gray); // linha guia
+            imageline($this->image, $linex, $this->margem, $linex, ($this->gtamanho + $this->margem), $this->getColor(0)); // linha guia
 
             // Desenha descrição no eixo X
-            //if(isset($arReferencia[$idxRef]) && $linex > $this->margem){
-            imagestringup($this->image, 2, $linex, ($this->gtamanho + ($this->margem * 6)), $arReferencia[$idxRef], $black);
-            //}
+            if(isset($arReferencia[$idxRef])){
+                imagestringup($this->image, 2, ($linex - $this->margem), ($this->gtamanho + ($this->margem * 6)), $arReferencia[$idxRef], null);
+            }
 
             $idxRef++;
         }
@@ -114,15 +128,11 @@ class GGraph {
             $val = floor($i * ($maxValue / count($arReferencia)));
 
             // Valores de referencia do lado direito eixo Y
-            imageline($this->image, $this->margem, $liney, ($this->gtamanho + $this->margem), $liney, $gray);
-            imagestring($this->image, 1, ($this->gtamanho + ($this->margem * 2)), $liney, utf8_decode($val), $gray);
+            imageline($this->image, $this->margem, $liney, ($this->gtamanho + $this->margem), $liney, $this->getColor(0));
+            imagestring($this->image, 1, ($this->gtamanho + ($this->margem * 2)), $liney, utf8_decode($val), $this->getColor(0));
 
             $liney += $this->columSize;
         }
-
-        // Linhas Preta
-        //imageline($this->image, $this->margem, ($this->gtamanho + $this->margem), ($this->gtamanho + $this->margem), ($this->gtamanho + $this->margem), $black);
-        //imageline($this->image, $this->margem, $this->margem, $this->margem, ($this->gtamanho + $this->margem), $black);
 
         return $maxValue;
     }
@@ -146,8 +156,6 @@ class GGraph {
     function graficoPoligno() {
         $maxValue = $this->desenhaBase();
 
-        $black = imagecolorallocate($this->image, 0, 0, 0);
-
         $labelY = $this->margem;
 
         $idx = 0;
@@ -157,12 +165,12 @@ class GGraph {
             $arValor = array();
             $idx++;
 
-            $color = $this->getColor($idx);
+            $color = $this->getColor($idx, 0, 0, 0, 60);
             $x = $this->margem;
             $y = $this->gtamanho + $this->margem;
 
             foreach ($item as $referencia => $value) {
-                $val = ($this->gtamanho + ($this->margem * 2)) - (floor((($this->gtamanho + $this->margem) * $value) / $maxValue));
+                $val = ($this->gtamanho + ($this->margem * 1)) - (floor((($this->gtamanho) * $value) / $maxValue));
 
                 $points[] = $x;
                 $points[] = $y;
@@ -189,12 +197,14 @@ class GGraph {
 
             imagefilledpolygon($this->image, $points, (count($points) / 2), $color);
 
-            foreach ($arPonto as $item) {
-                $this->desenhaPonto($item['x'], $item['y'], $black);
-            }
+            if($this->opMostrarPontoValor) {
+                foreach ($arPonto as $item) {
+                    $this->desenhaPonto($item['x'], $item['y'], null);
+                }
 
-            foreach ($arValor as $item) {
-                imagestring($this->image, 2, $item['x'], $item['y'], utf8_decode($item['value']), $black);
+                foreach ($arValor as $item) {
+                    imagestring($this->image, 2, $item['x'], ($item['y'] - $this->margem), utf8_decode($item['value']), null);
+                }
             }
 
             $this->desenhaLabel($label, $color, $labelY);
@@ -202,7 +212,28 @@ class GGraph {
         }
     }
 
+    function empilharGrafico(){
+        $lastKey = null;
+
+        // Empilhar
+        foreach($this->vetor as $keyA => $item){
+            foreach($item as $keyB => $value){
+                if($lastKey){
+                    $this->vetor[$keyA][$keyB] += $this->vetor[$lastKey][$keyB];
+                }
+            }
+
+            $lastKey = $keyA;
+        }
+
+        $this->vetor = array_reverse($this->vetor);
+    }
+
     function out() {
+        // Linhas Preta
+        imageline($this->image, $this->margem, ($this->gtamanho + $this->margem), ($this->gtamanho + $this->margem), ($this->gtamanho + $this->margem), null);
+        imageline($this->image, $this->margem, $this->margem, $this->margem, ($this->gtamanho + $this->margem), null);
+
         imagepng($this->image);
         imagedestroy($this->image);
     }
